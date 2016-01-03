@@ -261,6 +261,34 @@ def updateWish():
 		cursor.close()
 		conn.close()
 
+# create method for wish deletion
+@app.route('/deleteWish', methods=['POST'])
+def deleteWish():
+	print 'entering deleteWish'
+	try:
+		if session.get('user'):
+			_user = session.get('user')
+			_id = request.form['id']
+			print _user, _id
+
+			conn = mysql.connect()
+			cursor = conn.cursor()
+			cursor.callproc('sp_deleteWish', (_id, _user))
+			result = cursor.fetchall()
+			print result
+
+			if len(result) is 0:
+				conn.commit()
+				return json.dumps({'status': 'OK'})
+			else:
+				return json.dumps({'status': 'ERROR'})
+		else:
+			return render_template('error.html', error = "Unauthorized Access")
+	except Exception as e:
+		return json.dumps({'status': str(e)})
+	finally:
+		cursor.close()
+		conn.close()
 
 
 # Next, check if the executed file is the main program and run the app:

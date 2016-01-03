@@ -49,9 +49,32 @@
     	}
 
 
+    	function ConfirmDelete(elm){
+    		localStorage.setItem('deleteId', $(elm).attr('data-id'));
+    		$('#deleteModal').modal();
+    	}
 
-
-    	$(function(){
+    	function Delete(){
+    		$.ajax({
+    			url: '/deleteWish',
+    			data: {
+    				id: localStorage.getItem('deleteId')
+    			},
+    			type: 'POST',
+    			success: function(res) {
+    				var result = JSON.parse(res);
+    				if (result.status == 'OK') {
+    					$('#deleteModal').modal('hide');
+    					GetWishes();
+    				} else {
+    					alert(result.result);
+    				}
+    			},
+    			error: function(error) {
+    				console.log(error);
+    			}
+    		});
+    	}
 
     	function GetWishes(){	
     		$.ajax({
@@ -77,7 +100,8 @@
     		});
     	}
 
-   	
+
+    	$(function(){   		
 
     		GetWishes();
     		$('#btnUpdate').click(function() {
@@ -100,6 +124,7 @@
 	    			}
     		});
     		});
+
     	});
 
 	</script>
@@ -147,6 +172,7 @@
 				</div>
 				<div class="pull-right action-buttons">
 				<a data-id=${Id} onclick="Edit(this)"><span class="glyphicon glyphicon-pencil"></span></a>
+				<a data-id=${Id} onclick="ConfirmDelete(this)"><span class="glyphicon glyphicon-trash"></span></a>
 				</div>
 			</li>
 		</script>
@@ -192,6 +218,21 @@
 	                </div>
 	            </div>
 	        </div>
+	    </div>
+
+	    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+	    	<div class="modal-dialog">
+	    		<div class="modal-content">
+	    			<div class="modal-header" style="text-algin:center;">
+	    				<h4 class="modal-title" style="color:red;" id="deleteModalLabel">You are going to delete this forever !!</h4>
+	    			</div>
+
+	    			<div class="modal-footer">
+	    				<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+	    				<button type="button" class="btn btn-primary" onclick="Delete()">Delete</button>
+	    			</div>
+	    		</div>
+	    	</div>
 	    </div>
 
 
