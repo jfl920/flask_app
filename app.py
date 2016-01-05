@@ -17,6 +17,9 @@ app.config['MYSQL_DATABASE_DB'] = 'BucketList'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
 
+# default settings
+pageLimit = 2
+
 # Now define the basic route / and its corresponding request handler:
 @app.route("/")
 # Modify the main method to return the rendered template file
@@ -174,21 +177,36 @@ def addWish():
 
 
 # create method to call sp_GetWishByUser to get wishes created by user
-@app.route('/getWish')
+@app.route('/getWish', methods=['POST'])
 def getWish():
 	try:
 		# method can only be called with a valid user session
 		if session.get('user'):
 			_user = session.get('user')
+			_limit = pageLimit
+			_offset = request.form['offset']
+			print _offset
+			_total_records = 0
 
 			# once validated, make connection to MySQL
 			conn = mysql.connect()
 			cursor = conn.cursor()
-			cursor.callproc('sp_GetWishByUser', (_user,))
+			cursor.callproc('sp_GetWishByUser', (_user, _limit, _offset, _total_records))
 			wishes = cursor.fetchall()
+ 
+			# close cursor and open a new one to select returned out parameter
+			cursor.close()
+
+			cursor = conn.cursor()
+			cursor.execute('SELECT @_sp_GetWishByUser_3');
+
+			outParam = cursor.fetchall()
 
 			# once we have fetched data from MySQL, parse and convert to a dictionary so it is easy to return as JSON
+			# we'll make the wish list dictionary into another list and then add the wish list and record count to the main list.
+			response = []
 			wishes_dict = []
+
 			for wish in wishes:
 				wish_dict = {
 						'Id': wish[0],
@@ -197,7 +215,10 @@ def getWish():
 						'Date': wish[4]}
 				wishes_dict.append(wish_dict)
 
-			return json.dumps(wishes_dict)
+			response.append(wishes_dict)
+			response.append({'total': outParam[0][0]})
+
+			return json.dumps(response)
 
 		else:
 			return render_template('error.html', error = "Unauthorized Access")

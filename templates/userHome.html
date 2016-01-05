@@ -79,8 +79,13 @@
     	function GetWishes(){	
     		$.ajax({
     			url: '/getWish',
-    			type: 'GET',
+    			type: 'POST',
+    			data: {
+    				offset: 0
+    			},
     			success: function(res) {
+
+    					var itemsPerPage = 2;
     				
     					// parse JSON response
     					var wishObj = JSON.parse(res);
@@ -90,7 +95,44 @@
     			
 
     					// append to the template
-    					$('#listTemplate').tmpl(wishObj).appendTo('#ulist');
+    					$('#listTemplate').tmpl(wishObj[0]).appendTo('#ulist');
+
+    					console.log(res);
+
+    					var total = wishObj[1]['total'];
+    					var pageCount = total/itemsPerPage;
+    					var pageRem = total%itemsPerPage;
+    					if(pageRem != 0){
+    						pageCount = Math.floor(pageCount)+1;
+    					}
+
+
+    					// create previous link button and appended it to pagination UL
+    					var prevLink = $('<li/>').append($('<a/>').attr({
+	    						'href': '#'
+	    					}, {
+	    						'aria-label': 'Previous'
+	    					})
+	    					.append($('<span/>').attr('aria-hidden','true').html('&laquo;')));
+
+    					$('.pagination').append(prevLink);
+
+
+    					// add pages in the pagination based on page count
+    					for (var i = 0; i < pageCount; i++) {
+    						var page = $('<li/>').append($('<a/>').attr('href', '#').text(i + 1));
+    						$('.pagination').append(page);
+    					}
+    					console.log(page)
+
+    					// add next link after pages link have been created and append to pagination UL
+    					var nextLink = $('<li/>').append($('<a/>').attr({
+    							'href':'#'
+    						}, {
+    							'aria-label': 'Next'
+    						})
+    						.append($('<span/>').attr('aria-hidden', 'true').html('&raquo')));
+    					$('.pagination').append(nextLink);
 
 
     			},
@@ -185,6 +227,11 @@
 					<ul id="ulist" class="list-group">
 
 					</ul>
+					<nav>
+						<ul class="pagination">
+
+						</ul>
+					</nav>
 				</div>
 			</div>
 		</div>
