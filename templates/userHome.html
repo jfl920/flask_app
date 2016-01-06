@@ -76,12 +76,15 @@
     		});
     	}
 
-    	function GetWishes(){	
+    	function GetWishes(_page){	
+
+    		var _offset = (_page - 1) * 2;
+
     		$.ajax({
     			url: '/getWish',
     			type: 'POST',
     			data: {
-    				offset: 0
+    				offset: _offset
     			},
     			success: function(res) {
 
@@ -97,8 +100,8 @@
     					// append to the template
     					$('#listTemplate').tmpl(wishObj[0]).appendTo('#ulist');
 
-    					console.log(res);
 
+    					// calculate how many pages we need
     					var total = wishObj[1]['total'];
     					var pageCount = total/itemsPerPage;
     					var pageRem = total%itemsPerPage;
@@ -106,33 +109,87 @@
     						pageCount = Math.floor(pageCount)+1;
     					}
 
+    					// empty pagination to recalculate page #s
+    					$('.pagination').empty();
+
+    					// get the latest start and end page
+    					var pageStart =  $('#hdnStart').val();
+    					var pageEnd = $('#hdnEnd').val();
+
 
     					// create previous link button and appended it to pagination UL
-    					var prevLink = $('<li/>').append($('<a/>').attr({
-	    						'href': '#'
-	    					}, {
-	    						'aria-label': 'Previous'
-	    					})
-	    					.append($('<span/>').attr('aria-hidden','true').html('&laquo;')));
+    					// We will displaying 3 pages at a time, show prev link button only if page # is greater than 3
+    					if (pageStart > 3) {
+    						var aPrev = $('<a/>').attr({
+	    							'href': '#'
+	    						}, {
+	    							'aria-label': 'Previous'
+	    						})
+	    						.append($('<span/>').attr('aria-hidden','true').html('&laquo;'));
 
-    					$('.pagination').append(prevLink);
+	    					$(aPrev).click(function() {
+	    						// Previous button logic
+	    						// When the user clicks the previous button, we'll reset the hdnStart and hdnEnd values and call the GetWishes JavaScript function. 
+	    						$('#hdnStart').val(Number(pageStart) - 3);
+	    						$('#hdnEnd').val(Number(pageEnd) - 3 + 2);
+	    						GetWishes(Number(pageStart) - 3);
+
+	    					});
+
+	    					var prevLink = $('<li/>').append(aPrev);
+	    					$('.pagination').append(prevLink)
+    					}
 
 
     					// add pages in the pagination based on page count
-    					for (var i = 0; i < pageCount; i++) {
-    						var page = $('<li/>').append($('<a/>').attr('href', '#').text(i + 1));
-    						$('.pagination').append(page);
+    					// attach a click event to the anchor element displaying the page number
+    					// based on the start page and the end page, we'll loop and create the page links and append the .pagination UL.
+    					for (var i=Number(pageStart); i <=  Number(pageEnd); i++) {
+
+    						if (i > pageCount){
+    							break;
+    						}
+
+    						var aPage = $('<a/>').attr('href', '#').text(i);
+
+    						// attach the page click function
+    						$(aPage).click(function(i){
+
+    							return function() {
+    								GetWishes(i);
+    							}
+    						}(i));
+
+							var page = $('<li/>').append(aPage);
+
+							// attach the active page class
+							if ((_page == i)) {
+								$(page).attr('class', 'active');
+							}
+
+							$('.pagination').append(page);
     					}
-    					console.log(page)
+
 
     					// add next link after pages link have been created and append to pagination UL
-    					var nextLink = $('<li/>').append($('<a/>').attr({
-    							'href':'#'
-    						}, {
-    							'aria-label': 'Next'
-    						})
-    						.append($('<span/>').attr('aria-hidden', 'true').html('&raquo')));
-    					$('.pagination').append(nextLink);
+    					// by comparing to total page count and page start value, decide if we are going to display the next button or not
+
+    					if ((Number(pageStart) + 3) <= pageCount) {
+    						var nextLink = $('<li/>').append($('<a/>').attr({
+	    							'href': '#'
+	    						}, {
+	    							'aria-label': 'Next'
+	    						})
+	    						.append($('<span/>').attr('aria-hidden','true').html('&raquo;').click(function() {
+	    						// Next button logic
+	    						// When the user clicks the next button, we'll reset the hdnStart and hdnEnd values and call the GetWishes JavaScript function. 
+	    						$('#hdnStart').val(Number(pageStart) + 3);
+	    						$('#hdnEnd').val(Number(pageEnd) + 3 - 2);
+	    						GetWishes(Number(pageStart) + 3);
+
+	    					})));
+	    					$('.pagination').append(nextLink);
+    					}
 
 
     			},
@@ -145,7 +202,7 @@
 
     	$(function(){   		
 
-    		GetWishes();
+    		GetWishes(1);
     		$('#btnUpdate').click(function() {
 	    		$.ajax({
 	    			url: '/updateWish',
@@ -159,12 +216,16 @@
 	    				$('editModal').modal('hide');
 
 	    				// repopulate grid
-	    				GetWishes();
+	    				GetWishes(1);
 	    			},
 	    			error: function(error){
 	    				console.log(error);
 	    			}
     		});
+    		});
+
+    		$('document').on('click', 'navigation li a', function(){
+    			console.log('me in');
     		});
 
     	});
@@ -282,6 +343,8 @@
 	    	</div>
 	    </div>
 
+	    <input type="hidden" id="hdnStart" value="1"/>
+	    <input type="hidden" id="hdnEnd" value="3" />
 
 		<footer class="footer">
 			<p>&copy; Company 2015</p>
@@ -291,3 +354,4 @@
 </body>
 
 </html>
+
