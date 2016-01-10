@@ -5,6 +5,8 @@
 from flask import Flask, render_template, json, request, redirect, session
 from flask.ext.mysql import MySQL
 from werkzeug import generate_password_hash, check_password_hash
+import uuid
+import os
 
 app = Flask(__name__)
 app.secret_key = 'why would I tell you my secret key??'
@@ -19,6 +21,9 @@ mysql.init_app(app)
 
 # default settings
 pageLimit = 2
+
+# Add the path to the Upload folder in the app configuration
+app.config['UPLOAD_FOLDER'] = 'static/Uploads'
 
 # Now define the basic route / and its corresponding request handler:
 @app.route("/")
@@ -154,10 +159,27 @@ def addWish():
 			_description = request.form['inputDescription']
 			_user = session.get('user')	
 
+			# read the newly posted fields and pass them to the stored procedure
+			if request.form.get('filePath') is None:
+				_filePath = ''
+			else:
+				_filePath = request.form.get('filePath')
+
+
+			if request.form.get('private') is None:
+				_private = 0
+			else:
+				_private = 1
+
+			if request.form.get('done') is None:
+				_done = 0
+			else:
+				_done = 1
+
 			# Once we have required input values, open MySQL connection and call stored procedure to add wish
 			conn = mysql.connect()
 			cursor = conn.cursor()
-			cursor.callproc('sp_addWish', (_title, _description, _user))
+			cursor.callproc('sp_addWish', (_title, _description, _user, _filePath, _private, _done))
 			data = cursor.fetchall()
 
 			# After executed stored procedure, commit changes to database
@@ -245,7 +267,7 @@ def getWishById():
 
 			# once data is fetched, convert it to a list
 			wish = []
-			wish.append({'Id':result[0][0], 'Title':result[0][1], 'Description':result[0][2]})
+			wish.append({'Id':result[0][0], 'Title':result[0][1], 'Description':result[0][2], 'FilePath':result[0][3], 'Private':result[0][4], 'Done':result[0][5]})
 
 			return json.dumps(wish)
 
@@ -311,6 +333,19 @@ def deleteWish():
 		cursor.close()
 		conn.close()
 
+# method for uploading files
+@app.route('/upload', methods=['GET', 'POST'])
+def upload():
+	# check if it's a post request: if so - then read file from request
+	if request.method == 'POST':
+		file = request.files['file']
+		# get the image file extension to save the file
+		extension = os.path.splitext(file.filename)[1]
+		# Once we have the file extension, we'll create a new unique file name using uuid
+		f_name = str(uuid.uuid4()) + extension
+		# save the posted file into the UPLOAD_FOLDER location and return the file name as a response
+		file.save(os.path.join(app.config['UPLOAD_FOLDER'], f_name))
+		return json.dumps({'filename' : f_name})
 
 # Next, check if the executed file is the main program and run the app:
 if __name__ == "__main__":
