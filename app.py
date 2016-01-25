@@ -115,7 +115,7 @@ def validateLogin():
 			if check_password_hash(str(data[0][3]),_password):
 				# set session variable
 				session['user'] = data[0][0]
-				return redirect('/userHome')
+				return redirect('/showDashboard')
 			else:
 				return render_template('error.html', error = 'Wrong Email address or Password. ')
 		else:
@@ -287,11 +287,19 @@ def updateWish():
 			_title = request.form['title']
 			_description = request.form['description']
 			_wish_id = request.form['id']
+			_filePath = request.form['filePath']
+			_isPrivate = request.form['isPrivate']
+			_isDone = request.form['isDone']
+			print(_filePath)
+
+
+
 
 			conn = mysql.connect()
 			cursor = conn.cursor()
-			cursor.callproc('sp_updateWish', (_title, _description, _wish_id, _user))
+			cursor.callproc('sp_updateWish', (_title, _description, _wish_id, _user, _filePath, _isPrivate, _isDone))
 			data = cursor.fetchall()
+
 
 			if len(data) is 0:
 				conn.commit()
@@ -346,6 +354,67 @@ def upload():
 		# save the posted file into the UPLOAD_FOLDER location and return the file name as a response
 		file.save(os.path.join(app.config['UPLOAD_FOLDER'], f_name))
 		return json.dumps({'filename' : f_name})
+
+
+# route for showing dashboard to render dashboard page
+@app.route('/showDashboard')
+def showDashboard():
+	return render_template('dashboard.html')
+
+
+# method to call stored procedure sp_GetAllWishes
+@app.route('/getAllWishes')
+def getAllWishes():
+	try:
+		if session.get('user'):
+
+			conn = mysql.connect()
+			cursor = conn.cursor()
+			cursor.callproc('sp_GetAllWishes')
+			result = cursor.fetchall()
+
+			wishes_dict = []
+			for wish in result:
+				wish_dict = {
+					'Id': wish[0],
+					'Title': wish[1],
+					'Description': wish[2],
+					'FilePath': wish[3]}
+				wishes_dict.append(wish_dict)
+
+			return json.dumps(wishes_dict)
+		else:
+			return render_template('error.html', error = "Unauthorized Access")
+	except:
+		return render_template('error.html', error=str(e))
+
+# method to call stored procedure sp_AddUpdateLikes
+@app.route('/addUpdateLike', methods=['POST'])
+def addUpdateLike():
+	try: 
+		if session.get('user'):
+			_wishId = request.form['wish']
+			_like = request.form['like']
+			_user = session.get('user')
+
+			conn = mysql.connect()
+			cursor = conn.cursor()
+			cursor.callproc('sp_AddUpdateLikes', (_wishId, _user, _like))
+			data = cursor.fetchall()
+
+			if len(data) is 0:
+				conn.commit()
+				return json.dumps({'status': 'OK'})
+			else:
+				return render_template('error.html', error = 'An error occured!')
+		else:
+			return render_template('error.html', error= 'Unauthorized Access')
+
+	except Exception as e:
+		return render_template('error.html', error=str(e))
+	finally:
+		cursor.close()
+		conn.close()
 
 # Next, check if the executed file is the main program and run the app:
 if __name__ == "__main__":

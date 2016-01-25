@@ -15,6 +15,11 @@
     <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
 
+    <script src="../static/js/jquery.ui.widget.js"></script>
+    <script type="text/javascript" src="../static/js/jquery.fileupload.js"></script>
+    <script type="text/javascript" src="../static/js/jquery.fileupload-process.js"></script>
+    <script type="text/javascript" src="../static/js/jquery.fileupload-ui.js"></script>
+
 
    <style>
     	.btn-file {
@@ -60,7 +65,6 @@
     				// populate the pop up
     				$('#editTitle').val(data[0]['Title']);
     				$('#editDescription').val(data[0]['Description']);
-
     				$('#imgUpload').attr('src', data[0]['FilePath']);
 
     				if (data[0]['Private']=="1") {
@@ -243,7 +247,10 @@
 	    			data: {
 	    				title: $('#editTitle').val(),
 	    				description: $('#editDescription').val(),
-	    				id: localStorage.getItem('editId')
+	    				id: localStorage.getItem('editId'),
+	    				filePath: $('#imgUpload').attr('src'),
+	    				isPrivate: $('#chkPrivate').is(':checked')?1:0,
+	    				isDone: $('#chkDone').is(':checked')?1:0
 	    			},
 	    			type: 'POST',
 	    			success: function(res) {
@@ -264,8 +271,36 @@
 
     	});
 
+
+
+
 	</script>
 
+	<script>
+
+	    $(function() {
+	    	// attach the file upload plugin to the #fileupload button
+	    	// the function posts the file to the /upload request handler defined in Python
+	    	$('#fileupload').fileupload({
+	    		url: 'upload',
+	    		dataType: 'JSON',
+	    		//defined an add function to submit data
+	    		add: function(e, data) {
+	    			data.submit();
+	    		},
+	    		success: function(response, status) {
+	    			var filePath = 'static/Uploads/' + response.filename;
+	    			$('#imgUpload').attr('src', filePath);
+	    			$('#filePath').val(filePath);
+	    		},
+	    		error: function(error) {
+	    			console.log(error);
+	    		}
+
+
+	    	});
+		})
+	</script>
 
 
 
@@ -292,8 +327,10 @@
 		<div class="header">
 			<nav>
 				<ul class="nav nav-pills pull-right">
+					<li role="presentation"><a href="/showDashboard">Dashboard</a></li>
+					<li role="presentation" class="active"><a href="/userHome">Home</a></li>
 					<li role="presentation"><a href="/showAddWish">Add Wish</a></li>
-					<li role="presentation" class="active"><a href="/logout">Logout</a>
+					<li role="presentation"><a href="/logout">Logout</a>
 					</li>
 				</ul>
 			</nav>
