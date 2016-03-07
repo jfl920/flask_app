@@ -26,12 +26,17 @@
     					console.log(data[i].Title);
 
     					if(itemsPerRow < 3) {
-    						console.log(i);
+
+    						console.log(data.length);
+       						console.log(i);
+
     						if(i == data.length - 1) {
-    							div.append(CreateThumb(data[i].Id, data[i].Title, data[i].Description, data[i].FilePath));
+    							div.append(CreateThumb(data[i].Id, data[i].Title, data[i].Description, data[i].FilePath, data[i].Like, data[i].HasLiked));
     							$('.well').append(div);
     						} else {
-    							div.append(CreateThumb(data[i].Id, data[i].Title, data[i].Description, data[i].FilePath));
+
+    							div.append(CreateThumb(data[i].Id, data[i].Title, data[i].Description, data[i].FilePath, data[i].Like, data[i].HasLiked));
+
     							itemsPerRow ++ ;
 
     						}
@@ -39,11 +44,11 @@
     					} else {
     						$('.well').append(div);
     						div = $('<div>').attr('class', 'row');
-    						div.append(CreateThumb(data[i].Id, data[i].Title, data[i].Description, data[i].FilePath));
+    						div.append(CreateThumb(data[i].Id, data[i].Title, data[i].Description, data[i].FilePath, data[i].Like, data[i].HasLiked));
     						if (i == data.length - 1) {
     							$('.well').append(div);
     						}
-    						itemsPerRow = 1;
+    						itemsPerRow = 0;
     					}
 
     				}
@@ -54,6 +59,7 @@
 
     		});
 			$(document).on('click', '[id^="btn_"]', function() {
+				var spId = $(this).attr('id').split('_')[1];
 				$.ajax({
 					url: '/addUpdateLike',
 					method: 'POST',
@@ -63,6 +69,13 @@
 					},
 					success: function(response) {
 						console.log(response);
+						var obj = JSON.parse(response);
+
+						if (obj.likeStatus == "1"){
+							$('#span_' + spId).html('&nbsp;You & ' + (Number(obj.total)-1) + ' Others');
+						} else {
+							$('#span_' + spId).html('&nbsp;' + obj.total + ' like(s)');
+						}
 					},
 					error: function(error) {
 						console.log(error);
@@ -75,7 +88,7 @@
 
     	})
 
-    	function CreateThumb(id, title, desc, filepath) {
+    	function CreateThumb(id, title, desc, filepath, like, hasLiked) {
     		var mainDiv = $('<div>').attr('class', 'col-sm-4 col-md-4');
     		var thumbNail = $('<div>').attr('class', 'thumbnail');
     		var img = $('<img>').attr({
@@ -102,7 +115,17 @@
     			'aria-hidden': 'true'
     		});
 
+    		var likeSpan = $('<span>').attr({'aria-hidden':'true', 'id': 'span_'+id});
+
+
+    		if (hasLiked == "1") {
+    			likeSpan.html('&nbsp;You & ' + (Number(like) - 1) + ' Others');
+    		} else {
+    			likeSpan.html('&nbsp;'+like+'like(s)');
+    		}
+
     		p.append(btn.append(span));
+    		p.append(likeSpan)
 
     		caption.append(title);
     		caption.append(desc);
